@@ -5,7 +5,7 @@ import javax.persistence.*;
 @Entity
 public class SimpleObject {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     Long id;
     @Column
     String key;
@@ -51,10 +51,8 @@ public class SimpleObject {
             return false;
         if (getKey() != null ? !getKey().equals(that.getKey()) : that.getKey() != null)
             return false;
-        if (getValue() != null ? !getValue().equals(that.getValue()) : that.getValue() != null)
-            return false;
+        return getValue() != null ? getValue().equals(that.getValue()) : that.getValue() == null;
 
-        return true;
     }
 
     @Override

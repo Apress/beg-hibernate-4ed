@@ -1,7 +1,7 @@
 package chapter07.validator;
 
 import chapter07.validated.Coordinate;
-import com.redhat.osas.hibernate.util.SessionUtil;
+import com.autumncode.hibernate.util.SessionUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.testng.annotations.DataProvider;
@@ -13,11 +13,11 @@ import static org.testng.Assert.fail;
 
 public class CoordinateTest {
     private Coordinate persist(Coordinate entity) {
-        Session session = SessionUtil.getSession();
-        Transaction tx = session.beginTransaction();
-        session.persist(entity);
-        tx.commit();
-        session.close();
+        try (Session session = SessionUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
+            session.persist(entity);
+            tx.commit();
+        }
         return entity;
     }
 
@@ -43,5 +43,4 @@ public class CoordinateTest {
         testValidCoordinate(-1, -1);
         fail("Should have gotten a constraint violation");
     }
-
 }

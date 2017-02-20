@@ -1,9 +1,9 @@
 package chapter04.orphan;
 
-import com.redhat.osas.hibernate.util.SessionUtil;
-import org.hibernate.Query;
+import com.autumncode.hibernate.util.SessionUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 import org.testng.annotations.Test;
 
 import java.util.List;
@@ -15,60 +15,61 @@ public class OrphanRemovalTest {
     public void orphanRemovalTest() {
         Long id = createLibrary();
 
-        Session session = SessionUtil.getSession();
-        Transaction tx = session.beginTransaction();
+        try (Session session = SessionUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
 
-        Library library = (Library) session.load(Library.class, id);
-        assertEquals(library.getBooks().size(), 3);
+            Library library = session.load(Library.class, id);
+            assertEquals(library.getBooks().size(), 3);
 
-        library.getBooks().remove(0);
-        assertEquals(library.getBooks().size(), 2);
+            library.getBooks().remove(0);
+            assertEquals(library.getBooks().size(), 2);
 
-        tx.commit();
-        session.close();
+            tx.commit();
+        }
 
-        session = SessionUtil.getSession();
-        tx = session.beginTransaction();
+        try (Session session = SessionUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
 
-        Library l2 = (Library) session.load(Library.class, id);
-        assertEquals(l2.getBooks().size(), 2);
+            Library l2 = session.load(Library.class, id);
+            assertEquals(l2.getBooks().size(), 2);
 
-        Query query = session.createQuery("from Book b");
-        List books = query.list();
-        assertEquals(books.size(), 2);
+            Query<Book> query = session.createQuery("from Book b", Book.class);
+            List<Book> books = query.list();
+            assertEquals(books.size(), 2);
 
-        tx.commit();
-        session.close();
+            tx.commit();
+        }
     }
 
     private Long createLibrary() {
-        Session session = SessionUtil.getSession();
-        Transaction tx = session.beginTransaction();
+        Library library = null;
+        try (Session session = SessionUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
 
-        Library library = new Library();
-        library.setName("orphanLib");
-        session.save(library);
+            library = new Library();
+            library.setName("orphanLib");
+            session.save(library);
 
-        Book book = new Book();
-        book.setLibrary(library);
-        book.setTitle("book 1");
-        session.save(book);
-        library.getBooks().add(book);
+            Book book = new Book();
+            book.setLibrary(library);
+            book.setTitle("book 1");
+            session.save(book);
+            library.getBooks().add(book);
 
-        book = new Book();
-        book.setLibrary(library);
-        book.setTitle("book 2");
-        session.save(book);
-        library.getBooks().add(book);
+            book = new Book();
+            book.setLibrary(library);
+            book.setTitle("book 2");
+            session.save(book);
+            library.getBooks().add(book);
 
-        book = new Book();
-        book.setLibrary(library);
-        book.setTitle("book 3");
-        session.save(book);
-        library.getBooks().add(book);
+            book = new Book();
+            book.setLibrary(library);
+            book.setTitle("book 3");
+            session.save(book);
+            library.getBooks().add(book);
 
-        tx.commit();
-        session.close();
+            tx.commit();
+        }
 
         return library.getId();
     }

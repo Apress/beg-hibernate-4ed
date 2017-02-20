@@ -7,18 +7,13 @@ import javax.persistence.*;
 @Entity
 @ToString
 @NoArgsConstructor
+@Data
 @EqualsAndHashCode
 public class FailingEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Setter
-    @Getter
     Integer id;
-    @Setter
-    @Getter
     FailureStatus failureStatus = null;
-    @Setter
-    @Getter
     String value;
 
     static enum FailureStatus {

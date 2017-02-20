@@ -2,7 +2,7 @@ package chapter07.validator;
 
 import chapter07.unvalidated.UnvalidatedSimplePerson;
 import chapter07.validated.ValidatedSimplePerson;
-import com.redhat.osas.hibernate.util.SessionUtil;
+import com.autumncode.hibernate.util.SessionUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.testng.annotations.Test;
@@ -15,18 +15,18 @@ public class ValidatorTest {
     @Test
     public void createUnvalidatedUnderagePerson() {
         Long id = null;
-        Session session = SessionUtil.getSession();
-        Transaction transaction = session.beginTransaction();
+        try (Session session = SessionUtil.getSession()) {
+            Transaction transaction = session.beginTransaction();
 
-        UnvalidatedSimplePerson person = new UnvalidatedSimplePerson();
-        person.setAge(12); // underage for system
-        person.setFname("Johnny");
-        person.setLname("McYoungster");
+            UnvalidatedSimplePerson person = new UnvalidatedSimplePerson();
+            person.setAge(12); // underage for system
+            person.setFname("Johnny");
+            person.setLname("McYoungster");
 
-        session.persist(person);
-        id = person.getId();
-        transaction.commit();
-        session.close();
+            session.persist(person);
+            id = person.getId();
+            transaction.commit();
+        }
     }
 
     @Test
@@ -64,11 +64,11 @@ public class ValidatorTest {
     }
 
     private ValidatedSimplePerson persist(ValidatedSimplePerson person) {
-        Session session = SessionUtil.getSession();
-        Transaction tx = session.beginTransaction();
-        session.persist(person);
-        tx.commit();
-        session.close();
+        try (Session session = SessionUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
+            session.persist(person);
+            tx.commit();
+        }
         return person;
     }
 

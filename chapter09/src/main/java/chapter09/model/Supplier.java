@@ -14,8 +14,9 @@ import java.util.List;
 })
 @NamedNativeQueries({
         @NamedNativeQuery(name = "supplier.findAverage",
-                query = "select p.supplier_id, avg(p.price) "
-                        + "from Product p group by p.supplier_id")
+                query = "SELECT p.supplier_id, avg(p.price) "
+                        + "FROM Product p GROUP BY p.supplier_id"
+        )
 })
 public class Supplier implements Serializable {
     @Id
@@ -67,9 +68,8 @@ public class Supplier implements Serializable {
         Supplier supplier = (Supplier) o;
 
         if (id != null ? !id.equals(supplier.id) : supplier.id != null) return false;
-        if (!name.equals(supplier.name)) return false;
+        return name.equals(supplier.name);
 
-        return true;
     }
 
     @Override

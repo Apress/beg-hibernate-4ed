@@ -1,203 +1,550 @@
 package chapter10;
 
-import chapter10.model.Product;
-import chapter10.model.Software;
-import chapter10.model.Supplier;
-import com.redhat.osas.hibernate.util.SessionUtil;
-import org.hibernate.Criteria;
-import org.hibernate.Query;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
-import org.hibernate.criterion.*;
-import org.testng.Assert;
+import chapter10.model.*;
+import com.autumncode.jpa.util.JPASessionUtil;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import javax.persistence.EntityManager;
+import javax.persistence.NonUniqueResultException;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+import javax.persistence.metamodel.EntityType;
+import javax.persistence.metamodel.Metamodel;
 import java.util.List;
+import java.util.function.Consumer;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.fail;
+import static org.testng.Assert.*;
 
 public class QueryTest {
-    Session session;
-    Transaction tx;
+    private void doWithEntityManager(Consumer<EntityManager> command) {
+        EntityManager em = JPASessionUtil.getEntityManager("chapter10");
+        em.getTransaction().begin();
+
+        command.accept(em);
+        if (em.getTransaction().isActive() &&
+                !em.getTransaction().getRollbackOnly()) {
+            em.getTransaction().commit();
+        } else {
+            em.getTransaction().rollback();
+        }
+
+        em.close();
+    }
 
     @BeforeMethod
     public void populateData() {
-        Session session = SessionUtil.getSession();
-        Transaction tx = session.beginTransaction();
+        doWithEntityManager((em) -> {
+            Supplier supplier = new Supplier("Hardware, Inc.");
+            supplier.getProducts().add(
+                    new Product(supplier, "Optical Wheel Mouse", "Mouse", 5.00));
+            supplier.getProducts().add(
+                    new Product(supplier, "Trackball Mouse", "Mouse", 22.00));
+            em.persist(supplier);
 
-        Supplier supplier = new Supplier("Hardware, Inc.");
-        supplier.getProducts().add(
-                new Product(supplier, "Optical Wheel Mouse", "Mouse", 5.00));
-        supplier.getProducts().add(
-                new Product(supplier, "Trackball Mouse", "Mouse", 22.00));
-        session.save(supplier);
+            supplier = new Supplier("Hardware Are We");
+            supplier.getProducts().add(
+                    new Software(supplier, "SuperDetect", "Antivirus", 14.95, "1.0"));
+            supplier.getProducts().add(
+                    new Software(supplier, "Wildcat", "Browser", 19.95, "2.2"));
+            supplier.getProducts().add(
+                    new Product(supplier, "AxeGrinder", "Gaming Mouse", 42.00));
+            supplier.getProducts().add(
+                    new Product(supplier, "I5 Tablet", "Computer", 849.99));
+            supplier.getProducts().add(
+                    new Product(supplier, "I7 Desktop", "Computer", 1599.99));
 
-        supplier = new Supplier("Hardware Are We");
-        supplier.getProducts().add(
-                new Software(supplier, "SuperDetect", "Antivirus", 14.95, "1.0"));
-        supplier.getProducts().add(
-                new Software(supplier, "Wildcat", "Browser", 19.95, "2.2"));
-        supplier.getProducts().add(
-                new Product(supplier, "AxeGrinder", "Gaming Mouse", 42.00));
-
-        session.save(supplier);
-        tx.commit();
-        session.close();
-
-        this.session = SessionUtil.getSession();
-        this.tx = this.session.beginTransaction();
+            em.persist(supplier);
+        });
     }
 
     @AfterMethod
-    public void closeSession() {
-        session.createQuery("delete from Software").executeUpdate();
-        session.createQuery("delete from Product").executeUpdate();
-        session.createQuery("delete from Supplier").executeUpdate();
-        if (tx.isActive()) {
-            tx.commit();
-        }
-        if (session.isOpen()) {
-            session.close();
-        }
+    public void cleanup() {
+        doWithEntityManager((em) -> {
+            em.createQuery("delete from Software").executeUpdate();
+            em.createQuery("delete from Product").executeUpdate();
+            em.createQuery("delete from Supplier").executeUpdate();
+        });
     }
 
     @Test
     public void testSimpleCriteriaQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        assertEquals(crit.list().size(), 5);
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+            Root<Product> root = criteria.from(Product.class);
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria).getResultList().size(), 7);
+        });
     }
 
     @Test
     public void testSimpleEQQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.eq("description", "Mouse"));
-        assertEquals(crit.list().size(), 2);
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(
+                    builder.equal(
+                            root.get(Product_.description),
+                            builder.parameter(String.class, "description")
+                    )
+            );
+
+            criteria.select(root);
+
+            assertEquals(em
+                    .createQuery(criteria)
+                    .setParameter("description", "Mouse")
+                    .getResultList()
+                    .size(), 2);
+        });
     }
 
     @Test
     public void testSimpleNEQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.ne("description", "Mouse"));
-        assertEquals(crit.list().size(), 3);
-    }
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
 
-    @Test
-    public void testSimpleILikeQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.ilike("description", "mou%"));
-        assertEquals(crit.list().size(), 2);
-    }
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(
+                    builder.notEqual(
+                            root.get(Product_.description),
+                            builder.parameter(String.class, "description")
+                    )
+            );
 
-    @Test
-    public void testILikeMatchModeQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.ilike("description", "ser", MatchMode.END));
-        assertEquals(crit.list().size(), 1);
+            criteria.select(root);
+
+            assertEquals(em
+                    .createQuery(criteria)
+                    .setParameter("description", "Mouse")
+                    .getResultList()
+                    .size(), 5);
+        });
     }
 
     @Test
     public void testSimpleLikeQuery() {
-        // should return none, based on case
-        Criteria crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.like("description", "mou%"));
-        assertEquals(crit.list().size(), 0);
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
 
-        // should return two since case matches
-        crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.like("description", "Mou%"));
-        assertEquals(crit.list().size(), 2);
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(builder.like(
+                    root.get(Product_.description),
+                    builder.parameter(String.class, "description")));
+
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria)
+                    .setParameter("description", "%Mouse")
+                    .getResultList().size(), 3);
+        });
     }
 
     @Test
-    public void testGTLTQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.gt("price", 25.0));
-        assertEquals(crit.list().size(), 1);
+    public void testSimpleLikeIgnoreCaseQuery() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
 
-        crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.lt("price", 25.0));
-        assertEquals(crit.list().size(), 4);
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(builder.like(
+                    builder.lower(root.get(Product_.description)),
+                    builder.lower(builder.parameter(String.class, "description")))
+            );
+
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria)
+                    .setParameter("description", "%mOUse")
+                    .getResultList().size(), 3);
+        });
+    }
+
+    @Test
+    public void testNotNullQuery() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(builder.isNull(
+                    builder.lower(root.get(Product_.description))));
+
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria).getResultList().size(), 0);
+        });
+    }
+
+    @Test
+    public void testGTQuery() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(builder.greaterThan(root.get(Product_.price),
+                    builder.parameter(Double.class, "price")));
+
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria)
+                    .setParameter("price", 25.0)
+                    .getResultList().size(), 3);
+        });
+    }
+
+    @Test
+    public void testLTEQuery() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(builder.lessThanOrEqualTo(root.get(Product_.price),
+                    builder.parameter(Double.class, "price")));
+
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria)
+                    .setParameter("price", 25.0)
+                    .getResultList().size(), 4);
+        });
     }
 
     @Test
     public void testANDQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.lt("price", 10.0));
-        crit.add(Restrictions.ilike("description", "mouse", MatchMode.ANYWHERE));
-        assertEquals(crit.list().size(), 1);
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(
+                    builder.and(
+                            builder.lessThanOrEqualTo(
+                                    root.get(Product_.price),
+                                    builder.parameter(Double.class, "price")
+                            ),
+                            builder.like(
+                                    builder.lower(
+                                            root.get(Product_.description)
+                                    ),
+                                    builder.lower(
+                                            builder.parameter(String.class, "description")
+                                    )
+                            )
+                    )
+            );
+
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria)
+                    .setParameter("price", 10.0)
+                    .setParameter("description", "%mOUse")
+                    .getResultList().size(), 1);
+        });
     }
 
     @Test
     public void testORQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        Criterion priceLessThan = Restrictions.lt("price", 10.0);
-        Criterion mouse = Restrictions.ilike("description", "mouse", MatchMode.ANYWHERE);
-        LogicalExpression orExp = Restrictions.or(priceLessThan, mouse);
-        crit.add(orExp);
-        assertEquals(crit.list().size(), 3);
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(
+                    builder.or(
+                            builder.lessThanOrEqualTo(
+                                    root.get(Product_.price),
+                                    builder.parameter(Double.class, "price")
+                            ),
+                            builder.like(
+                                    builder.lower(
+                                            root.get(Product_.description)
+                                    ),
+                                    builder.lower(
+                                            builder.parameter(String.class, "description")
+                                    )
+                            )
+                    )
+            );
+
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria)
+                    .setParameter("price", 10.0)
+                    .setParameter("description", "%mOUse")
+                    .getResultList().size(), 3);
+        });
     }
 
     @Test
-    public void testORQueryPlusGaming() {
-        Criteria crit = session.createCriteria(Product.class);
-        Criterion priceLessThan = Restrictions.gt("price", 20.0);
-        Criterion mouse = Restrictions.ilike("description", "mouse", MatchMode.ANYWHERE);
-        LogicalExpression orExp = Restrictions.or(priceLessThan, mouse);
-        crit.add(orExp);
-        crit.add(Restrictions.ilike("description", "gaming", MatchMode.ANYWHERE));
-        assertEquals(crit.list().size(), 1);
+    public void testOrQuery() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(
+                    builder.or(
+                            builder.lessThanOrEqualTo(
+                                    root.get(Product_.price),
+                                    15.00
+                            ),
+                            builder.like(
+                                    builder.lower(
+                                            root.get(Product_.description)
+                                    ),
+                                    "%mOUse".toLowerCase()
+                            )
+                    )
+            );
+
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria).getResultList().size(), 4);
+        });
     }
 
     @Test
-    public void testSQLRestrictionQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.sqlRestriction("{alias}.description like 'Mou%'"));
-        assertEquals(crit.list().size(), 2);
+    public void testDisjunction() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+
+            Metamodel m = em.getMetamodel();
+            EntityType<Product> product = m.entity(Product.class);
+            Root<Product> root = criteria.from(product);
+            criteria.select(root);
+            criteria.where(
+                    builder.or(
+                            builder.and(
+                                    builder.lessThanOrEqualTo(
+                                            root.get(Product_.price),
+                                            builder.parameter(Double.class, "price_1")
+                                    ),
+                                    builder.like(
+                                            builder.lower(
+                                                    root.get(Product_.description)
+                                            ),
+                                            builder.lower(
+                                                    builder.parameter(String.class, "desc_1")
+                                            )
+                                    )
+                            ),
+                            builder.and(
+                                    builder.greaterThan(
+                                            root.get(Product_.price),
+                                            builder.parameter(Double.class, "price_2")
+                                    ),
+                                    builder.like(
+                                            builder.lower(
+                                                    root.get(Product_.description)
+                                            ),
+                                            builder.lower(
+                                                    builder.parameter(String.class, "desc_2")
+                                            )
+                                    )
+                            )
+                    )
+            );
+
+            criteria.select(root);
+
+            assertEquals(em.createQuery(criteria)
+                    .setParameter("price_1", 25.00)
+                    .setParameter("desc_1", "%mOUse")
+                    .setParameter("price_2", 999.0)
+                    .setParameter("desc_2", "Computer")
+                    .getResultList().size(), 3);
+        });
     }
 
     @Test
-    public void testDisjunctionQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        Criterion priceLessThan = Restrictions.lt("price", 10.0);
-        Criterion mouse = Restrictions.ilike("description", "mouse", MatchMode.ANYWHERE);
-        Criterion browser = Restrictions.ilike("description", "browser", MatchMode.ANYWHERE);
-        Disjunction disjunction = Restrictions.disjunction();
-        disjunction.add(priceLessThan);
-        disjunction.add(mouse);
-        disjunction.add(browser);
-        crit.add(disjunction);
-        assertEquals(crit.list().size(), 4);
+    public void testPagination() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+            Root<Product> root = criteria.from(Product.class);
+            criteria.select(root);
+            TypedQuery<Product> query = em.createQuery(criteria);
+            query.setFirstResult(2);
+            query.setMaxResults(2);
+
+            assertEquals(query.getResultList().size(), 2);
+        });
+    }
+
+    @Test
+    public void testUniqueResult() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+            Root<Product> root = criteria.from(Product.class);
+            criteria.select(root);
+            criteria.where(builder.equal(root.get(Product_.price),
+                    builder.parameter(Double.class, "price")));
+
+            assertEquals(em.createQuery(criteria)
+                    .setParameter("price", 14.95)
+                    .getSingleResult().getName(), "SuperDetect");
+        });
+    }
+
+    @Test(expectedExceptions = NonUniqueResultException.class)
+    public void testUniqueResultWithException() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+            Root<Product> root = criteria.from(Product.class);
+            criteria.select(root);
+            criteria.where(builder.greaterThan(root.get(Product_.price),
+                    builder.parameter(Double.class, "price")));
+
+            Product p = em.createQuery(criteria)
+                    .setParameter("price", 14.95)
+                    .getSingleResult();
+            fail("Should have thrown an exception");
+        });
     }
 
     @Test
     public void testOrderedQuery() {
-        Criteria crit = session.createCriteria(Product.class);
-        crit.add(Restrictions.gt("price", 10.0));
-        crit.addOrder(Order.desc("price"));
-        List<Product> results = crit.list();
-        assertEquals(results.size(), 4);
-        double current = results.get(0).getPrice();
-        for (Product p : results) {
-            if (p.getPrice() > current) {
-                fail("Product list not ordered in descending order\n" +
-                        "Product: " + p + "\nPrevious price: " + current);
-            }
-            current = p.getPrice();
-        }
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+            Root<Product> root = criteria.from(Product.class);
+            criteria.select(root);
+            criteria.orderBy(
+                    builder.asc(root.get(Product_.description)),
+                    builder.asc(root.get(Product_.name))
+            );
+            List<Product> p = em.createQuery(criteria).getResultList();
+            assertEquals(p.size(), 7);
+            assertTrue(p.get(0).getPrice() < p.get(1).getPrice());
+        });
     }
 
     @Test
-    public void testCriteriaAssociation() {
-        Criteria crit = session.createCriteria(Supplier.class);
-        Criteria prodCrit = crit.createCriteria("products");
-        prodCrit.add(Restrictions.gt("price", 25.0));
-        assertEquals(crit.list().size(), 1);
+    public void testGetSuppliersWithProductUnder7() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Supplier> criteria = builder.createQuery(Supplier.class);
+            Root<Product> root = criteria.from(Product.class);
+            criteria.select(root.get(Product_.supplier))
+                    .distinct(true);
+            criteria.where(builder.lessThanOrEqualTo(root.get(Product_.price),
+                    builder.parameter(Double.class, "price")));
+
+            assertEquals(em.createQuery(criteria)
+                    .setParameter("price", 7.0)
+                    .getResultList().size(), 1);
+        });
     }
 
+    @Test
+    public void testGetProductsForSupplierFromProduct() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+            Root<Product> root = criteria.from(Product.class);
+            criteria.select(root);
+            criteria.where(builder.equal(
+                    root.join(Product_.supplier).get(Supplier_.name),
+                    builder.parameter(String.class, "supplier_name"))
+            );
+
+            List<Product> p = em.createQuery(criteria)
+                    .setParameter("supplier_name", "Hardware Are We")
+                    .getResultList();
+
+            assertEquals(p.size(), 5);
+        });
+    }
+
+    @Test
+    public void testGetProductsForSupplierFromSupplier() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<Product> criteria = builder.createQuery(Product.class);
+            Root<Supplier> root = criteria.from(Supplier.class);
+            criteria.select(root.join(Supplier_.products));
+            criteria.where(builder.equal(
+                    root.get(Supplier_.name),
+                    builder.parameter(String.class, "supplier_name"))
+            );
+            TypedQuery<Product> query = em.createQuery(criteria);
+            query.setParameter("supplier_name", "Hardware Are We");
+
+            List<Product> p = query.getResultList();
+
+            assertEquals(p.size(), 5);
+        });
+    }
+
+    @Test
+    public void testProjection() {
+        doWithEntityManager((em) -> {
+            CriteriaBuilder builder = em.getCriteriaBuilder();
+            CriteriaQuery<SupplierResult> criteria = builder.createQuery(SupplierResult.class);
+            Root<Supplier> root = criteria.from(Supplier.class);
+            criteria.select(builder.construct(
+                    SupplierResult.class,
+                    root.get(Supplier_.name),
+                    builder.count(root.join(Supplier_.products))
+            ))
+                    .groupBy(root.get(Supplier_.name))
+                    //
+                    // .distinct(true)
+                    .orderBy(builder.asc(root.get(Supplier_.name)));
+
+            List<SupplierResult> supplierData = em.createQuery(criteria).getResultList();
+            assertEquals(supplierData.get(0).count, 5);
+            assertEquals(supplierData.get(0).name, "Hardware Are We");
+            assertEquals(supplierData.get(1).count, 2);
+            assertEquals(supplierData.get(1).name, "Hardware, Inc.");
+        });
+    }
+    /*
     @Test
     public void testOwnerAssociation() {
         Criteria crit = session.createCriteria(Product.class);
@@ -227,9 +574,9 @@ public class QueryTest {
         List<Object[]> results = crit.list();
 
         assertEquals(results.size(), 1);
-        assertEquals(42.0, (Double) results.get(0)[0]);
-        assertEquals(5.0, (Double) results.get(0)[1]);
-        assertEquals(20.78, (Double) results.get(0)[2]);
+        assertEquals(42.0, results.get(0)[0]);
+        assertEquals(5.0, results.get(0)[1]);
+        assertEquals(20.78, results.get(0)[2]);
         assertEquals(4, ((Long) results.get(0)[3]).longValue());
     }
 
@@ -245,7 +592,7 @@ public class QueryTest {
         assertEquals(results.size(), 5);
         for (Object[] p : results) {
             System.out.printf("%-25s $%6.2f%n",
-                    p[0].toString(), (Double) p[1]);
+                    p[0].toString(), p[1]);
         }
     }
 
@@ -263,8 +610,8 @@ public class QueryTest {
         Query query = session.getNamedQuery("product.findProductAndSupplier");
         List<Object[]> suppliers = query.list();
         for (Object[] o : suppliers) {
-            Assert.assertTrue(o[0] instanceof Product);
-            Assert.assertTrue(o[1] instanceof Supplier);
+            assertTrue(o[0] instanceof Product);
+            assertTrue(o[1] instanceof Supplier);
         }
         assertEquals(suppliers.size(), 5);
     }
@@ -322,4 +669,5 @@ public class QueryTest {
         List<Product> products = query.list();
         assertEquals(products.size(), 3);
     }
+    */
 }

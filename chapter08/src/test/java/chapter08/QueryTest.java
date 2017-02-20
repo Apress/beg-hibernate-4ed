@@ -1,7 +1,7 @@
 package chapter08;
 
 import chapter08.model.Supplier;
-import com.redhat.osas.hibernate.util.SessionUtil;
+import com.autumncode.hibernate.util.SessionUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.testng.annotations.AfterMethod;
@@ -39,14 +39,14 @@ public class QueryTest {
         Session session = SessionUtil.getSession();
         Transaction tx = session.beginTransaction();
 
-        Supplier supplier = (Supplier) session.byId(Supplier.class).load(1);
+        Supplier supplier = session.byId(Supplier.class).load(1);
         tx.commit();
         session.close();
 
         session = SessionUtil.getSession();
         tx = session.beginTransaction();
 
-        supplier = (Supplier) session.byId(Supplier.class).load(1);
+        supplier = session.byId(Supplier.class).load(1);
 
         tx.commit();
         session.close();

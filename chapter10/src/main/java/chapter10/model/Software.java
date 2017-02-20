@@ -36,9 +36,8 @@ public class Software extends Product implements Serializable {
 
         Software software = (Software) o;
 
-        if (!version.equals(software.version)) return false;
+        return version.equals(software.version);
 
-        return true;
     }
 
     @Override

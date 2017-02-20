@@ -3,9 +3,9 @@ package chapter03.hibernate;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
-import org.hibernate.cfg.Configuration;
-import org.hibernate.service.ServiceRegistry;
-import org.hibernate.service.ServiceRegistryBuilder;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -14,25 +14,22 @@ public class PersonTest {
 
     @BeforeClass
     public void setup() {
-        Configuration configuration = new Configuration();
-        configuration.configure();
-        ServiceRegistryBuilder srBuilder = new ServiceRegistryBuilder();
-        srBuilder.applySettings(configuration.getProperties());
-        ServiceRegistry serviceRegistry = srBuilder.buildServiceRegistry();
-        factory = configuration.buildSessionFactory(serviceRegistry);
+        StandardServiceRegistry registry = new StandardServiceRegistryBuilder()
+                .configure()
+                .build();
+        factory = new MetadataSources(registry).buildMetadata().buildSessionFactory();
     }
 
     @Test
     public void testSavePerson() {
-        Session session = factory.openSession();
-        Transaction tx = session.beginTransaction();
-        Person person = new Person();
-        person.setName("J. C. Smell");
+        try (Session session = factory.openSession()) {
+            Transaction tx = session.beginTransaction();
+            Person person = new Person();
+            person.setName("J. C. Smell");
 
-        session.save(person);
+            session.save(person);
 
-        tx.commit();
-        session.close();
+            tx.commit();
+        }
     }
-
 }

@@ -1,6 +1,6 @@
 package chapter07.lifecycle;
 
-import com.redhat.osas.jpa.util.JPASessionUtil;
+import com.autumncode.jpa.util.JPASessionUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.testng.Reporter;
@@ -14,49 +14,49 @@ public class LifecycleTest {
     @Test
     public void testLifecycle() {
         Integer id;
-        Session session = JPASessionUtil.getSession("chapter07");
+        LifecycleThing thing1, thing2, thing3;
+        try (Session session = JPASessionUtil.getSession("chapter07")) {
+            Transaction tx = session.beginTransaction();
+            thing1 = new LifecycleThing();
+            thing1.setName("Thing 1");
 
-        Transaction tx = session.beginTransaction();
-        LifecycleThing thing1 = new LifecycleThing();
-        thing1.setName("Thing 1");
+            session.save(thing1);
+            id = thing1.getId();
+            System.out.println(thing1);
+            tx.commit();
+        }
 
-        session.save(thing1);
-        id = thing1.getId();
+        try (Session session = JPASessionUtil.getSession("chapter07")) {
+            Transaction tx = session.beginTransaction();
+            thing2 = session
+                    .byId(LifecycleThing.class)
+                    .load(-1);
+            assertNull(thing2);
 
-        tx.commit();
-        session.close();
+            Reporter.log("attempted to load nonexistent reference");
 
-        session = JPASessionUtil.getSession("chapter07");
-        tx = session.beginTransaction();
-        LifecycleThing thing2 = (LifecycleThing) session
-                .byId(LifecycleThing.class)
-                .load(-1);
-        assertNull(thing2);
+            thing2 = session.byId(LifecycleThing.class)
+                    .getReference(id);
+            assertNotNull(thing2);
+            assertEquals(thing1, thing2);
 
-        Reporter.log("attempted to load nonexistent reference");
+            thing2.setName("Thing 2");
 
-        thing2 = (LifecycleThing) session.byId(LifecycleThing.class)
-                .getReference(id);
-        assertNotNull(thing2);
-        assertEquals(thing1, thing2);
+            tx.commit();
+        }
+        try (Session session = JPASessionUtil.getSession("chapter07")) {
+            Transaction tx = session.beginTransaction();
 
-        thing2.setName("Thing 2");
+            thing3 = session
+                    .byId(LifecycleThing.class)
+                    .getReference(id);
+            assertNotNull(thing3);
+            assertEquals(thing2, thing3);
 
-        tx.commit();
-        session.close();
+            session.delete(thing3);
 
-        session = JPASessionUtil.getSession("chapter07");
-        tx = session.beginTransaction();
-        LifecycleThing thing3 = (LifecycleThing) session
-                .byId(LifecycleThing.class)
-                .getReference(id);
-        assertNotNull(thing3);
-        assertEquals(thing2, thing3);
-
-        session.delete(thing3);
-
-        tx.commit();
-        session.close();
+            tx.commit();
+        }
         assertEquals(LifecycleThing.lifecycleCalls.nextClearBit(0), 7);
     }
 
@@ -70,7 +70,12 @@ public class LifecycleTest {
     @Test
     public void prepersistException() {
         Session session = JPASessionUtil.getSession("chapter07");
+
         Transaction tx = session.beginTransaction();
+        session.createQuery("delete from FailingEntity").executeUpdate();
+        tx.commit();
+
+        tx = session.beginTransaction();
         FailingEntity fe = new FailingEntity();
         fe.setValue("FailingEntity");
         fe.setFailureStatus(FailingEntity.FailureStatus.PREPERSIST);
@@ -79,7 +84,7 @@ public class LifecycleTest {
         } catch (Throwable ignored) {
             ignored.printStackTrace();
         }
-        tx.commit();
+        tx.rollback();
         session.close();
 
         session = JPASessionUtil.getSession("chapter07");
@@ -103,10 +108,10 @@ public class LifecycleTest {
             Integer id = failingEntity.getId();
             tx.commit();
             session.close();
+            System.out.println(failingEntity);
             session = JPASessionUtil.getSession("chapter07");
             tx = session.beginTransaction();
-            FailingEntity fe = (FailingEntity)
-                    session.load(FailingEntity.class, id);
+            FailingEntity fe = session.load(FailingEntity.class, id);
             assertEquals(fe, failingEntity);
             session.delete(fe);
             tx.commit();
@@ -136,7 +141,7 @@ public class LifecycleTest {
 
         session = JPASessionUtil.getSession("chapter07");
         tx = session.beginTransaction();
-        FailingEntity e = (FailingEntity) session
+        FailingEntity e = session
                 .byId(FailingEntity.class)
                 .load(failingEntity.getId());
         System.out.println(e);

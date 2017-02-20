@@ -1,13 +1,15 @@
 package chapter07.lifecycle;
 
-import com.redhat.osas.jpa.util.JPASessionUtil;
+import com.autumncode.jpa.util.JPASessionUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.testng.annotations.Test;
 
 import java.util.Date;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class ExternalListenerTest {
     @Test
@@ -27,7 +29,7 @@ public class ExternalListenerTest {
         session.close();
         session = JPASessionUtil.getSession("chapter07");
         //tx = session.beginTransaction();
-        UserAccount ua2 = (UserAccount) session
+        UserAccount ua2 = session
                 .byId(UserAccount.class)
                 .getReference(id);
         assertEquals(ua.getName(), ua2.getName());

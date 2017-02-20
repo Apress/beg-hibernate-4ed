@@ -9,12 +9,12 @@
         <provider>org.hibernate.ogm.jpa.HibernateOgmPersistence</provider>
         <class>chapter12.Person</class>
         <properties>
-            <!-- property optional if you plan and use Infinispan, otherwise adjust to your favorite
-                NoSQL Datastore provider.                     -->
             <property name="hibernate.ogm.datastore.provider"
                       value="org.hibernate.ogm.datastore.mongodb.impl.MongoDBDatastoreProvider"/>
             <!-- defines which JTA Transaction we plan to use -->
-            <property name="hibernate.ogm.mongodb.database" value="chapter12"/>
+            <property name="hibernate.ogm.datastore.database" value="chapter12"/>
+            <property name="hibernate.ogm.datastore.create_database" value="true" />
+            <property name="hibernate.search.default.indexBase" value="./lucene-mongo" />
             <property name="hibernate.transaction.jta.platform"
                       value="org.hibernate.service.jta.platform.internal.JBossStandAloneJtaPlatform"/>
         </properties>
@@ -32,7 +32,7 @@
             <!-- defines which JTA Transaction we plan to use -->
             <property name="hibernate.transaction.jta.platform"
                       value="org.hibernate.service.jta.platform.internal.JBossStandAloneJtaPlatform"/>
+            <property name="hibernate.search.default.indexBase" value="./lucene-ispn" />
         </properties>
-
     </persistence-unit>
 </persistence>

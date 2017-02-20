@@ -5,7 +5,7 @@ import javax.persistence.*;
 @Entity
 public class Ranking {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     Long id;
     @ManyToOne
     Person subject;

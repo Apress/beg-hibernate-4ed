@@ -5,7 +5,7 @@ import javax.persistence.*;
 @Entity
 public class Book {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     Long id;
     @Column
     String title;
@@ -38,6 +38,5 @@ public class Book {
     public void setLibrary(Library library) {
         this.library = library;
     }
-
 
 }

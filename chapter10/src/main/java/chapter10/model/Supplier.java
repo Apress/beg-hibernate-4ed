@@ -57,9 +57,8 @@ public class Supplier implements Serializable {
         Supplier supplier = (Supplier) o;
 
         if (id != null ? !id.equals(supplier.id) : supplier.id != null) return false;
-        if (!name.equals(supplier.name)) return false;
+        return name.equals(supplier.name);
 
-        return true;
     }
 
     @Override

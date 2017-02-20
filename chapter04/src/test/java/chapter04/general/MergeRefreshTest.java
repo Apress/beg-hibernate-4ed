@@ -1,7 +1,7 @@
 package chapter04.general;
 
 import chapter04.model.SimpleObject;
-import com.redhat.osas.hibernate.util.SessionUtil;
+import com.autumncode.hibernate.util.SessionUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.testng.annotations.Test;
@@ -12,32 +12,33 @@ public class MergeRefreshTest {
     @Test
     public void testMerge() {
         Long id;
-        Session session = SessionUtil.getSession();
-        Transaction tx = session.beginTransaction();
+        try (Session session = SessionUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
 
-        SimpleObject simpleObject = new SimpleObject();
+            SimpleObject simpleObject = new SimpleObject();
 
-        simpleObject.setKey("testMerge");
-        simpleObject.setValue(1L);
+            simpleObject.setKey("testMerge");
+            simpleObject.setValue(1L);
 
-        session.save(simpleObject);
+            session.save(simpleObject);
 
-        id = simpleObject.getId();
+            id = simpleObject.getId();
 
-        tx.commit();
-        session.close();
+            tx.commit();
+        }
 
         SimpleObject so = validateSimpleObject(id, 1L);
 
         so.setValue(2L);
 
-        session = SessionUtil.getSession();
-        tx = session.beginTransaction();
+        try (Session session = SessionUtil.getSession()) {
+            // merge is potentially an update, so we need a TX
+            Transaction tx = session.beginTransaction();
 
-        session.merge(so);
+            session.merge(so);
 
-        tx.commit();
-        session.close();
+            tx.commit();
+        }
 
         validateSimpleObject(id, 2L);
     }
@@ -45,49 +46,42 @@ public class MergeRefreshTest {
     @Test
     public void testRefresh() {
         Long id;
-        Session session = SessionUtil.getSession();
-        Transaction tx = session.beginTransaction();
+        try (Session session = SessionUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
 
-        SimpleObject simpleObject = new SimpleObject();
+            SimpleObject simpleObject = new SimpleObject();
 
-        simpleObject.setKey("testMerge");
-        simpleObject.setValue(1L);
+            simpleObject.setKey("testMerge");
+            simpleObject.setValue(1L);
 
-        session.save(simpleObject);
+            session.save(simpleObject);
 
-        id = simpleObject.getId();
+            id = simpleObject.getId();
 
-        tx.commit();
-        session.close();
+            tx.commit();
+        }
 
         SimpleObject so = validateSimpleObject(id, 1L);
 
         so.setValue(2L);
 
-        session = SessionUtil.getSession();
-        tx = session.beginTransaction();
-
-        session.refresh(so);
-
-        tx.commit();
-        session.close();
+        try (Session session = SessionUtil.getSession()) {
+            // note that refresh is a read,
+            // so no TX is necessary unless an update occurs later
+            session.refresh(so);
+        }
 
         validateSimpleObject(id, 1L);
     }
 
     private SimpleObject validateSimpleObject(Long id, Long value) {
-        Session session;
-        Transaction tx;// validate the database values
-        session = SessionUtil.getSession();
-        tx = session.beginTransaction();
+        SimpleObject so = null;
+        try (Session session = SessionUtil.getSession()) {
+            so = session.load(SimpleObject.class, id);
 
-        SimpleObject so = (SimpleObject) session.load(SimpleObject.class, id);
-
-        assertEquals(so.getKey(), "testMerge");
-        assertEquals(so.getValue(), value);
-
-        tx.commit();
-        session.close();
+            assertEquals(so.getKey(), "testMerge");
+            assertEquals(so.getValue(), value);
+        }
 
         return so;
     }

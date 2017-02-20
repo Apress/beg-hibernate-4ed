@@ -60,11 +60,12 @@ public class Employee {
 
         Employee employee = (Employee) o;
 
-        if (department != null ? !department.equals(employee.department) : employee.department != null) return false;
-        if (id != null ? !id.equals(employee.id) : employee.id != null) return false;
-        if (name != null ? !name.equals(employee.name) : employee.name != null) return false;
-        if (section != null ? !section.equals(employee.section) : employee.section != null) return false;
-
+        if (department != null ? !department.equals(employee.getDepartment()) : employee.getDepartment() != null)
+            return false;
+        if (id != null ? !id.equals(employee.getId()) : employee.getId() != null) return false;
+        if (name != null ? !name.equals(employee.getName()) : employee.getName() != null) return false;
+        if (section != null ? !section.equals(employee.getSection()) : employee.getSection() != null) return false;
+        System.out.println("returning true for equals()");
         return true;
     }
 
@@ -75,5 +76,16 @@ public class Employee {
         result = 31 * result + (department != null ? department.hashCode() : 0);
         result = 31 * result + (name != null ? name.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("Employee{");
+        sb.append("id=").append(id);
+        sb.append(", section=").append(section);
+        sb.append(", department=").append(department);
+        sb.append(", name='").append(name).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 }

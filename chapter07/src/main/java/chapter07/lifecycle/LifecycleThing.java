@@ -1,26 +1,20 @@
 package chapter07.lifecycle;
 
-import lombok.*;
+import lombok.Data;
 import org.jboss.logging.Logger;
 
 import javax.persistence.*;
 import java.util.BitSet;
 
 @Entity
-@ToString
-@NoArgsConstructor
-@EqualsAndHashCode
+@Data
 public class LifecycleThing {
     static Logger logger = Logger.getLogger(LifecycleThing.class);
     static BitSet lifecycleCalls = new BitSet();
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Getter
-    @Setter
     Integer id;
-    @Getter
-    @Setter
     @Column
     String name;
 

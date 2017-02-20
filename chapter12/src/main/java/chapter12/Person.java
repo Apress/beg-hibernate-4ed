@@ -11,7 +11,7 @@ import javax.persistence.*;
 public class Person {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Field(name = "id")
+    @Field(name = "person_id")
     Integer id;
     @Field(analyze = Analyze.NO)
     @Column

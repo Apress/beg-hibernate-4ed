@@ -92,9 +92,8 @@ public class Product implements Serializable {
         if (id != null ? !id.equals(product.id) : product.id != null) return false;
         if (!name.equals(product.name)) return false;
         if (!price.equals(product.price)) return false;
-        if (!supplier.equals(product.supplier)) return false;
+        return supplier.equals(product.supplier);
 
-        return true;
     }
 
     @Override

@@ -4,11 +4,11 @@ import javax.persistence.*;
 
 @Entity
 public class Skill {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
     @Column
     String name;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
 
     public Skill() {
     }

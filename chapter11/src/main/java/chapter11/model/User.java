@@ -1,7 +1,7 @@
 package chapter11.model;
 
-import lombok.*;
-import lombok.experimental.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.*;
 
 import javax.persistence.*;
@@ -11,11 +11,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
+@Data
 @NoArgsConstructor
-@Builder
-@AllArgsConstructor
-@EqualsAndHashCode
-@ToString
 @FilterDefs({
         @FilterDef(name = "byStatus", parameters = @ParamDef(name = "status", type = "boolean")),
         @FilterDef(name = "byGroup", parameters = @ParamDef(name = "group", type = "string")),
@@ -30,21 +27,20 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     Integer id;
-    @Getter
-    @Setter
     @Column(unique = true)
     String name;
-    @Getter
-    @Setter
     boolean active;
-    @Getter
-    @Setter
     @ElementCollection
     Set<String> groups;
 
+    public User(String name, boolean active) {
+        this.name=name;
+        this.active=active;
+    }
+
     public void addGroups(String... groupSet) {
         if (getGroups() == null) {
-            setGroups(new HashSet<String>());
+            setGroups(new HashSet<>());
         }
         getGroups().addAll(Arrays.asList(groupSet));
 

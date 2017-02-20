@@ -3,10 +3,10 @@ package chapter09;
 import chapter09.model.Product;
 import chapter09.model.Software;
 import chapter09.model.Supplier;
-import com.redhat.osas.hibernate.util.SessionUtil;
-import org.hibernate.Query;
+import com.autumncode.hibernate.util.SessionUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -24,27 +24,27 @@ public class QueryTest {
 
     @BeforeMethod
     public void populateData() {
-        Session session = SessionUtil.getSession();
-        Transaction tx = session.beginTransaction();
+        try(Session session = SessionUtil.getSession()) {
+            Transaction tx = session.beginTransaction();
 
-        Supplier supplier = new Supplier("Hardware, Inc.");
-        supplier.getProducts().add(
-                new Product(supplier, "Optical Wheel Mouse", "Mouse", 5.00));
-        supplier.getProducts().add(
-                new Product(supplier, "Trackball Mouse", "Mouse", 22.00));
-        session.save(supplier);
+            Supplier supplier = new Supplier("Hardware, Inc.");
+            supplier.getProducts().add(
+                    new Product(supplier, "Optical Wheel Mouse", "Mouse", 5.00));
+            supplier.getProducts().add(
+                    new Product(supplier, "Trackball Mouse", "Mouse", 22.00));
+            session.save(supplier);
 
-        supplier = new Supplier("Supplier 2");
-        supplier.getProducts().add(
-                new Software(supplier, "SuperDetect", "Antivirus", 14.95, "1.0"));
-        supplier.getProducts().add(
-                new Software(supplier, "Wildcat", "Browser", 19.95, "2.2"));
-        supplier.getProducts().add(
-                new Product(supplier, "AxeGrinder", "Gaming Mouse", 42.00));
+            supplier = new Supplier("Supplier 2");
+            supplier.getProducts().add(
+                    new Software(supplier, "SuperDetect", "Antivirus", 14.95, "1.0"));
+            supplier.getProducts().add(
+                    new Software(supplier, "Wildcat", "Browser", 19.95, "2.2"));
+            supplier.getProducts().add(
+                    new Product(supplier, "AxeGrinder", "Gaming Mouse", 42.00));
 
-        session.save(supplier);
-        tx.commit();
-        session.close();
+            session.save(supplier);
+            tx.commit();
+        }
 
         this.session = SessionUtil.getSession();
         this.tx = this.session.beginTransaction();
@@ -64,13 +64,13 @@ public class QueryTest {
 
     @Test
     public void testNamedQuery() {
-        Query query = session.getNamedQuery("supplier.findAll");
+        Query<Supplier> query = session.getNamedQuery("supplier.findAll");
         List<Supplier> suppliers = query.list();
         assertEquals(suppliers.size(), 2);
     }
     @Test
     public void testJoin() {
-        Query query = session.getNamedQuery("product.findProductAndSupplier");
+        Query<Object[]> query = session.getNamedQuery("product.findProductAndSupplier");
         List<Object[]> suppliers = query.list();
         for(Object[] o:suppliers) {
             Assert.assertTrue(o[0] instanceof Product);
@@ -80,7 +80,8 @@ public class QueryTest {
     }
     @Test
     public void testSimpleQuery() {
-        Query query = session.createQuery("from Product");
+        Query<Product> query = session.createQuery("from Product", Product.class);
+
         query.setComment("This is only a query for product");
         List<Product> products = query.list();
         assertEquals(products.size(), 5);
@@ -88,7 +89,7 @@ public class QueryTest {
 
     @Test
     public void testSimpleProjection() {
-        Query query = session.createQuery("select p.name from Product p");
+        Query<String> query = session.createQuery("select p.name from Product p", String.class);
         List<String> suppliers = query.list();
         for(String s:suppliers) {
             System.out.println(s);
@@ -108,10 +109,10 @@ public class QueryTest {
 
     @Test
     public void testLikeQuery() {
-        Query query = session.createQuery(
+        Query<Product> query = session.createQuery(
                 "from Product p "
                         + " where p.price > :minprice"
-                        + " and p.description like :desc");
+                        + " and p.description like :desc", Product.class);
         query.setParameter("desc", "Mou%");
         query.setParameter("minprice", 15.0);
         List<Product> products = query.list();

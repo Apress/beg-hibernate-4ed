@@ -1,10 +1,11 @@
 package chapter04.id;
 
-import com.redhat.osas.hibernate.util.SessionUtil;
+import com.autumncode.hibernate.util.SessionUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import org.hibernate.id.IdentifierGenerationException;
 import org.testng.annotations.Test;
+
+import javax.persistence.PersistenceException;
 
 public class IdentityTest {
     @Test
@@ -22,7 +23,7 @@ public class IdentityTest {
         System.out.println(obj.getId());
     }
 
-    @Test(expectedExceptions = IdentifierGenerationException.class)
+    @Test(expectedExceptions = PersistenceException.class)
     public void testNongeneratedIdentityFailure() {
         Session session = SessionUtil.getSession();
         Transaction tx = session.beginTransaction();

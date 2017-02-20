@@ -5,16 +5,16 @@
 <hibernate-configuration>
     <session-factory>
         <!--  Database connection settings  -->
-        <property name="connection.driver_class">org.hsqldb.jdbc.JDBCDriver</property>
-        <property name="connection.url">jdbc:hsqldb:util;shutdown=true</property>
+        <property name="connection.driver_class">org.h2.Driver</property>
+        <property name="connection.url">jdbc:h2:./util</property>
         <property name="connection.username">sa</property>
         <property name="connection.password"/>
-        <property name="dialect">org.hibernate.dialect.HSQLDialect</property>
+        <property name="dialect">org.hibernate.dialect.H2Dialect</property>
 
         <!--  Echo all executed SQL to stdout  -->
         <property name="show_sql">true</property>
-        <!--  Drop and re-create the database schema on startup  -->
-        <property name="hbm2ddl.auto">create-drop</property>
-        <mapping class="com.redhat.osas.util.model.Thing"/>
+        <!--  make sure the database and the entity model are consistent -->
+        <property name="hbm2ddl.auto">update</property>
+        <mapping class="com.autumncode.util.model.Thing"/>
     </session-factory>
 </hibernate-configuration>
