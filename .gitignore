@@ -1,0 +1,11 @@
+#Database files
+
+.*.mv.db
+
+# Maven
+target/
+
+# IDEA
+*.ipr
+*.iml
+.idea/
