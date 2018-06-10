@@ -16,10 +16,6 @@ See the file Contributing.md for more information on how you can contribute to t
 
 ## Issues
 
-* Chapter 8 has changed for recent versions of Hibernate. The current `master` branch uses updated dependency 
-versions and matches the book in most important respects, but caching is disabled via Hibernate configuration 
-(the cache configuration is commented out.) A correction is on its way as soon as time permits.
-Unfortunately, Hibernate cache configuration is in a state of "could be
-improved" and it takes some time to work out the issues; in the meantime,
-the book is out of sync with the current version of Hibernate. All
-apologies, humbly offered.
+* Note that the book relies on Hibernate 5.2.X, while Hibernate itself is on the 5.3 branch now.
+This is largely due to chapter08 and cache configuration, which Hibernate 5.3 has changed. The source
+code will update when cache configuration stabilizes and becomes more transparent.
