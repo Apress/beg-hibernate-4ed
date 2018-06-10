@@ -1,6 +1,9 @@
-#Database files
+#Editor detritus
+*~
 
+#Database files
 *.mv.db
+*.db
 
 # Maven
 target/

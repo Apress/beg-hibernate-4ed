@@ -2,10 +2,10 @@ package chapter08;
 
 import chapter08.model.Publisher;
 import com.autumncode.hibernate.util.SessionUtil;
-import org.hibernate.HibernateException;
-import org.hibernate.PessimisticLockException;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
+import org.hibernate.*;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.query.Query;
 import org.testng.annotations.Test;
 

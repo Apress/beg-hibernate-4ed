@@ -10,15 +10,13 @@
         <property name="connection.username">sa</property>
         <property name="connection.password"/>
         <property name="dialect">org.hibernate.dialect.H2Dialect</property>
-<!--
         <property name="hibernate.cache.use_second_level_cache">true</property>
         <property name="hibernate.cache.use_query_cache">true</property>
         <property name="hibernate.cache.region_prefix">chapter08</property>
         <property name="hibernate.cache.region.factory_class">
             org.hibernate.cache.ehcache.EhCacheRegionFactory
         </property>
--->
-        
+
         <!-- set up c3p0 for use -->
         <property name="c3p0.max_size">10</property>
         <!--  Echo all executed SQL to stdout  -->
