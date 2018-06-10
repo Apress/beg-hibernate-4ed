@@ -1,6 +1,6 @@
 #Database files
 
-.*.mv.db
+*.mv.db
 
 # Maven
 target/

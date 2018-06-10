@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <!--  Database connection settings  -->
+        <property name="connection.driver_class">org.h2.Driver</property>
+        <property name="connection.url">jdbc:h2:./db4</property>
+        <property name="connection.username">sa</property>
+        <property name="connection.password"/>
+        <property name="dialect">org.hibernate.dialect.H2Dialect</property>
+        <!-- set up c3p0 for use -->
+        <property name="c3p0.max_size">10</property>
+        <!--  Echo all executed SQL to stdout  -->
+        <property name="show_sql">true</property>
+        <!--  Drop and re-create the database schema on startup  -->
+        <property name="hbm2ddl.auto">create</property>
+
+        <mapping class="chapter04.broken.Email"/>
+        <mapping class="chapter04.broken.Message"/>
+
+        <mapping class="chapter04.mapped.Email"/>
+        <mapping class="chapter04.mapped.Message"/>
+
+        <mapping class="chapter04.id.GeneratedAutoIdentity"/>
+        <mapping class="chapter04.id.GeneratedIdentityIdentity"/>
+        <mapping class="chapter04.id.GeneratedTableIdentity"/>
+        <mapping class="chapter04.id.GeneratedSequenceIdentity"/>
+        <mapping class="chapter04.id.NongeneratedIdentity"/>
+
+        <mapping class="chapter04.model.SimpleObject"/>
+
+        <mapping class="chapter04.orphan.Library"/>
+        <mapping class="chapter04.orphan.Book"/>
+    </session-factory>
+</hibernate-configuration>

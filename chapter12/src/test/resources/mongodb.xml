@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <!--  Database connection settings  -->
+        <property name="connection.driver_class">org.h2.Driver</property>
+        <property name="connection.url">jdbc:h2:file:./db11</property>
+        <property name="connection.username">sa</property>
+        <property name="connection.password"/>
+        <property name="dialect">org.hibernate.dialect.H2Dialect</property>
+        <!-- set up c3p0 for use -->
+        <property name="c3p0.max_size">10</property>
+        <!--  Echo all executed SQL to stdout  -->
+        <property name="show_sql">true</property>
+        <property name="use_sql_comments">true</property>
+
+        <!--  Drop and re-create the database schema on startup  -->
+        <property name="hbm2ddl.auto">create-drop</property>
+
+        <mapping class="chapter11.model.User"/>
+    </session-factory>
+</hibernate-configuration>
